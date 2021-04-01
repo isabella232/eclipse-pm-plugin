@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            categoryId="com.akamai.ruletreevalidator.commands.category"
+            name="Download Rule Tree"
+            id="com.akamai.ruletreevalidator.downloadRuleTree">
+      </command>
+      <command
+            categoryId="com.akamai.ruletreevalidator.commands.category"
+            id="com.akamai.ruletreevalidator.manageBehavior"
+            name="Add Behavior">
+      </command>
+      <command
+            categoryId="com.akamai.ruletreevalidator.commands.category"
+            id="com.akamai.ruletreevalidator.credentialSettings"
+            name="Set Credentials">
+      </command>
+      <command
+            categoryId="com.akamai.ruletreevalidator.commands.category"
+            id="com.akamai.ruletreevalidator.manageCriteria"
+            name="Add Criteria">
+      </command>
+      <command
+            categoryId="com.akamai.ruletreevalidator.commands.category"
+            id="com.akamai.ruletreevalidator.validateRuleTree"
+            name="Validate Rule Tree">
+      </command>
+      <command
+            categoryId="com.akamai.ruletreevalidator.commands.category"
+            id="com.akamai.ruletreevalidator.manageVariable"
+            name="Create Variable">
+      </command>
+      <command
+            categoryId="com.akamai.ruletreevalidator.commands.category"
+            id="com.akamai.ruletreevalidator.useVariable"
+            name="Use Variable">
+      </command>
+      <command
+            categoryId="com.akamai.ruletreevalidator.commands.category"
+            id="com.akamai.ruletreevalidator.addBlankRule"
+            name="Add Blank Rule">
+      </command>
+   </extension>
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            class="com.akamai.ruletreevalidator.handlers.DownloadRuleTreeHandler"
+            commandId="com.akamai.ruletreevalidator.downloadRuleTree">
+      </handler>
+      <handler
+            class="com.akamai.ruletreevalidator.handlers.BehaviorHandler"
+            commandId="com.akamai.ruletreevalidator.manageBehavior">
+      </handler>
+      <handler
+            class="com.akamai.ruletreevalidator.handlers.CriteriaHandler"
+            commandId="com.akamai.ruletreevalidator.manageCriteria">
+      </handler>
+      <handler
+            class="com.akamai.ruletreevalidator.handlers.CredentialSettingsHandler"
+            commandId="com.akamai.ruletreevalidator.credentialSettings">
+      </handler>
+      <handler
+            class="com.akamai.ruletreevalidator.handlers.ValidateRuleTreeHandler"
+            commandId="com.akamai.ruletreevalidator.validateRuleTree">
+      </handler>
+      <handler
+            class="com.akamai.ruletreevalidator.handlers.CreateVariableHandler"
+            commandId="com.akamai.ruletreevalidator.manageVariable">
+      </handler>
+      <handler
+            class="com.akamai.ruletreevalidator.handlers.AddVariableHandler"
+            commandId="com.akamai.ruletreevalidator.addVariable">
+      </handler>
+      <handler
+            class="com.akamai.ruletreevalidator.handlers.RuleTemplateHandler"
+            commandId="com.akamai.ruletreevalidator.addBlankRule">
+      </handler>
+   </extension>
+   
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            locationURI="menu:org.eclipse.ui.main.menu?after=additions">
+         <menu
+               id="com.akamai.ruletreevalidator.menus.manageRuleTree"
+               label="Property Manager"
+               mnemonic="M">
+            <command
+                  commandId="com.akamai.ruletreevalidator.credentialSettings"
+                  id="com.akamai.ruletreevalidator.menus.CredentialSettings"
+                  label="Set Credentials"
+                  style="push">
+            </command>
+            <command
+                  commandId="com.akamai.ruletreevalidator.downloadRuleTree"
+                  id="com.akamai.ruletreevalidator.menus.validateRuleTree"
+                  label="Download Rule Tree">
+            </command>
+            <command
+                  commandId="com.akamai.ruletreevalidator.manageBehavior"
+                  id="com.akamai.ruletreevalidator.menus.validateRuleTree"
+                  label="Add Behavior"
+                  style="push">
+            </command>
+               <command
+                  commandId="com.akamai.ruletreevalidator.manageCriteria"
+                  id="com.akamai.ruletreevalidator.menus.validateRuleTree"
+                  label="Add Criteria"
+                  style="push">
+            </command>
+            <command
+                  commandId="com.akamai.ruletreevalidator.addBlankRule"
+                  id="com.akamai.ruletreevalidator.menus.addBlankRule"
+                  label="Add Blank Rule"
+                  style="push">
+            </command>
+            <command
+                  commandId="com.akamai.ruletreevalidator.manageVariable"
+                  id="com.akamai.ruletreevalidator.menus.validateRuleTree"
+                  label="Create Variable"
+                  style="push">
+            </command>
+            <command
+                  commandId="com.akamai.ruletreevalidator.addVariable"
+                  id="com.akamai.ruletreevalidator.menus.addVariable"
+                  label="Add Variable"
+                  style="push">
+            </command>
+            <command
+                  commandId="com.akamai.ruletreevalidator.validateRuleTree"
+                  id="com.akamai.ruletreevalidator.menus.validateRuleTree"
+                  label="Validate Rule Tree"
+                  style="push">
+            </command>
+         </menu>
+      </menuContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.startup">
+   </extension>
+</plugin>
