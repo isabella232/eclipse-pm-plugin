@@ -6,8 +6,7 @@
       provider-name="Akamai Technologies Inc">
 
    <description url="https://github.com/akamai/eclipse-pm-plugin/blob/main/README.md">
-      DEVOPSPROV_1619 - Add rule template bug fix and client credential
-option name change
+      Release 0.9.0
    </description>
 
    <copyright url="http://www.apache.org/licenses/LICENSE-2.0">
