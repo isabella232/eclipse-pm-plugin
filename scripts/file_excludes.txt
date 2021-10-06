@@ -1,5 +1,6 @@
 scripts/publish.sh
 scripts/files_exclude.txt
 target
-.git/*
+.git
+.classpath
 .gitignore

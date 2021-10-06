@@ -41,6 +41,11 @@
       </command>
       <command
             categoryId="com.akamai.ruletreevalidator.commands.category"
+            id="com.akamai.ruletreevalidator.addExternalResources"
+            name="Add External Resources">
+      </command>
+      <command
+            categoryId="com.akamai.ruletreevalidator.commands.category"
             id="com.akamai.ruletreevalidator.addBlankRule"
             name="Add Blank Rule">
       </command>
@@ -78,6 +83,10 @@
       <handler
             class="com.akamai.ruletreevalidator.handlers.RuleTemplateHandler"
             commandId="com.akamai.ruletreevalidator.addBlankRule">
+      </handler>
+      <handler
+            class="com.akamai.ruletreevalidator.handlers.ExternalResourcesHandler"
+            commandId="com.akamai.ruletreevalidator.addExternalResources">
       </handler>
    </extension>
    
@@ -131,6 +140,12 @@
                   style="push">
             </command>
             <command
+                  commandId="com.akamai.ruletreevalidator.addExternalResources"
+                  id="com.akamai.ruletreevalidator.menus.addExternalResources"
+                  label="Add External Resources"
+                  style="push">
+            </command>
+            <command
                   commandId="com.akamai.ruletreevalidator.validateRuleTree"
                   id="com.akamai.ruletreevalidator.menus.validateRuleTree"
                   label="Validate Rule Tree"
@@ -138,8 +153,18 @@
             </command>
          </menu>
       </menuContribution>
+      
    </extension>
    <extension
          point="org.eclipse.ui.startup">
+   </extension>
+   <extension
+         point="org.eclipse.ui.bindings">
+      <key
+            commandId="com.akamai.ruletreevalidator.addExternalResources"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            contextId="org.eclipse.ui.contexts.window"
+            sequence="M4+R">
+      </key>
    </extension>
 </plugin>

@@ -27,6 +27,7 @@ import org.eclipse.ui.dialogs.ListSelectionDialog;
 
 import com.akamai.ruletreevalidator.exceptions.CredentialsMissingException;
 import com.akamai.ruletreevalidator.exceptions.MissingPropertyDetailsException;
+import com.akamai.ruletreevalidator.exceptions.RuleTreeDownloadError;
 import com.akamai.ruletreevalidator.models.SnippetType;
 import com.akamai.ruletreevalidator.utils.FileUtils;
 import com.akamai.ruletreevalidator.utils.JsonUtil;
@@ -75,6 +76,8 @@ public class AddBehaviorDialog {
 					parentShell,
 					"Missing Property Details",
 					e.getMessage());
+		} catch (RuleTreeDownloadError e) {
+			
 		}
 		
     }

@@ -38,16 +38,17 @@ import com.akamai.ruletreevalidator.exceptions.CredentialsMissingException;
 import com.akamai.ruletreevalidator.exceptions.PropertyNotFoundException;
 import com.akamai.ruletreevalidator.exceptions.RuleTreeDownloadError;
 import com.akamai.ruletreevalidator.models.Context;
+import com.akamai.ruletreevalidator.models.ExternalResource;
 import com.akamai.ruletreevalidator.models.OpenCredentials;
 import com.akamai.ruletreevalidator.models.Property;
 import com.akamai.ruletreevalidator.models.PropertyVersion;
-import com.akamai.ruletreevalidator.models.ResponseType;
 import com.akamai.ruletreevalidator.utils.ConsoleErrorMatcher;
 import com.akamai.ruletreevalidator.utils.EdgeRcClientCredentialProvider;
 import com.akamai.ruletreevalidator.utils.FileUtils;
 import com.akamai.ruletreevalidator.utils.HttpResponseHandlerUtil;
 import com.akamai.ruletreevalidator.utils.JsonUtil;
 import com.akamai.ruletreevalidator.utils.RuleTreeUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
@@ -57,8 +58,6 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.apache.ApacheHttpTransport;
-import com.google.api.client.json.Json;
-import com.google.gson.JsonObject;
 
 
 public class PapiOpenCalls {
@@ -113,7 +112,7 @@ public class PapiOpenCalls {
 		try {
 			request = requestFactory.buildPostRequest(new GenericUrl(uri), ByteArrayContent.fromString("application/json", requestBody));
 			HttpHeaders headers = new HttpHeaders();
-			headers.setUserAgent("Eclipse-Plugin v0.0.1");
+			headers.setUserAgent("Eclipse-Plugin v1.0.0");
 			request.setHeaders(headers);
 			googleHttpSigner.sign(request);
 			request.setFollowRedirects(false);
@@ -181,7 +180,7 @@ public class PapiOpenCalls {
 		try {
 			request = requestFactory.buildGetRequest(new GenericUrl(uri));
 			HttpHeaders headers = new HttpHeaders();
-			headers.setUserAgent("Eclipse-Plugin v0.0.1");
+			headers.setUserAgent("Eclipse-Plugin v1.0.0");
 			request.setHeaders(headers);
 			googleHttpSigner.sign(request);
 			request.setFollowRedirects(false);
@@ -245,7 +244,7 @@ public class PapiOpenCalls {
 		try {
 			request = requestFactory.buildGetRequest(new GenericUrl(uri));
 			HttpHeaders headers = new HttpHeaders();
-			headers.setUserAgent("Eclipse-Plugin v0.0.1");
+			headers.setUserAgent("Eclipse-Plugin v1.0.0");
 			request.setHeaders(headers);
 			googleHttpSigner.sign(request);
 			request.setFollowRedirects(false);
@@ -297,7 +296,7 @@ public class PapiOpenCalls {
 		try {
 			request = requestFactory.buildGetRequest(new GenericUrl(uri));
 			HttpHeaders headers = new HttpHeaders();
-			headers.setUserAgent("Eclipse-Plugin v0.0.1");
+			headers.setUserAgent("Eclipse-Plugin v1.0.0");
 			request.setHeaders(headers);
 			googleHttpSigner.sign(request);
 			request.setFollowRedirects(false);
@@ -343,7 +342,7 @@ public class PapiOpenCalls {
 		try {
 			request = requestFactory.buildGetRequest(new GenericUrl(uri));
 			HttpHeaders headers = new HttpHeaders();
-			headers.setUserAgent("Eclipse-Plugin v0.0.1");
+			headers.setUserAgent("Eclipse-Plugin v1.0.0");
 			request.setHeaders(headers);
 			googleHttpSigner.sign(request);
 			request.setFollowRedirects(false);
@@ -408,7 +407,7 @@ public class PapiOpenCalls {
 			String ruleTreeFromEditor = ruleTreeUtils.readRuleTreeFromEditor();
 			request = requestFactory.buildPostRequest(new GenericUrl(uri), ByteArrayContent.fromString("application/json", ruleTreeFromEditor));
 			HttpHeaders headers = new HttpHeaders();
-			headers.setUserAgent("Eclipse-Plugin v0.0.1");
+			headers.setUserAgent("Eclipse-Plugin v1.0.0");
 			request.setHeaders(headers);
 			googleHttpSigner.sign(request);
 			request.setFollowRedirects(false);
@@ -469,7 +468,7 @@ public class PapiOpenCalls {
 		try {
 			request = requestFactory.buildGetRequest(new GenericUrl(uri));
 			HttpHeaders headers = new HttpHeaders();
-			headers.setUserAgent("Eclipse-Plugin v0.0.1");
+			headers.setUserAgent("Eclipse-Plugin v1.0.0");
 			request.setHeaders(headers);
 			googleHttpSigner.sign(request);
 			request.setFollowRedirects(false);
@@ -522,7 +521,7 @@ public class PapiOpenCalls {
 		try {
 			request = requestFactory.buildGetRequest(new GenericUrl(uri));
 			HttpHeaders headers = new HttpHeaders();
-			headers.setUserAgent("Eclipse-Plugin v0.0.1");
+			headers.setUserAgent("Eclipse-Plugin v1.0.0");
 			request.setHeaders(headers);
 			googleHttpSigner.sign(request);
 			request.setFollowRedirects(false);
@@ -557,5 +556,60 @@ public class PapiOpenCalls {
 		}
 		return products;
 	}
+	
+	public void getExternalResourcesForPropertyVersion(String propertyId, String version) throws RuleTreeDownloadError, IOException {
+		if (retry == false) {
+			if (openCredentials.getAccount_id() == null || openCredentials.getAccount_id().isEmpty()) {
+				requestUrl = "https://" + host + "/papi/v0/properties/"+propertyId+"/versions/"+version+"/external-resources";
+			} else {
+				requestUrl = "https://" + host + "/papi/v0/properties/"+propertyId+"/versions/"+version+"/external-resources?accountSwitchKey="+openCredentials.getAccount_id();
+			}
+		}
+		System.out.println("URL: " + requestUrl);
+		URI uri = URI.create(requestUrl);
+		HttpRequest request;
+		HttpResponse response;
+		String externalResourcesJson = null;
+		ArrayList<String> products = new ArrayList<String>();
+		try {
+			request = requestFactory.buildGetRequest(new GenericUrl(uri));
+			HttpHeaders headers = new HttpHeaders();
+			//TODO: Change the version on release of new version
+			headers.setUserAgent("Eclipse-Plugin v1.0.0");
+			request.setHeaders(headers);
+			googleHttpSigner.sign(request);
+			request.setReadTimeout(60000);
+			request.setFollowRedirects(false);
+			request.setThrowExceptionOnExecuteError(false);
+			response = request.execute();
+			List<ExternalResource> externalResources = new ArrayList<ExternalResource>();
+			if (response.getStatusCode() == 302) {
+				retry = true;
+				requestUrl = response.getHeaders().getLocation();
+			} else
+				retry = false;
+				httpResponseHandlerUtil.handleResponse(response);
+				externalResourcesJson = response.parseAsString();
+				JSONParser parser = new JSONParser();
+				JSONObject json = (JSONObject) parser.parse(externalResourcesJson);
+				JsonUtil jsonUtil = new JsonUtil();
+				externalResources = jsonUtil.getExternalResourcesFromJson(json);
+				ObjectMapper mapper = new ObjectMapper();
+			      //Converting the Object to JSONString
+			      String jsonString = mapper.writeValueAsString(externalResources);
+			 fileUtils.saveExternalResourcesUnderWorkspace(jsonString, propertyId, version);
+		} catch (IOException e) {
+			throw new RuleTreeDownloadError(e.getMessage(),
+					PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell());
+		} catch (RequestSigningException e) {
+			// TODO Auto-generated catch block
+			throw new RuleTreeDownloadError(e.getMessage(),
+					PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell());
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 
 }

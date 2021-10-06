@@ -2,11 +2,11 @@
 <feature
       id="com.akamai.propertymanager.feature"
       label="Property Manager Feature"
-      version="0.9.0.qualifier"
+      version="1.0.0.release"
       provider-name="Akamai Technologies Inc">
 
    <description url="https://github.com/akamai/eclipse-pm-plugin/blob/main/README.md">
-      Release 0.9.0
+      Release 1.0 - Support for external resources
    </description>
 
    <copyright url="http://www.apache.org/licenses/LICENSE-2.0">

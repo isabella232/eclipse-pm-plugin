@@ -39,6 +39,7 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
@@ -81,6 +82,45 @@ public class FileUtils {
 			if (!schemaFolder.exists())
 				schemaFolder.create(IResource.NONE, true, null);
 				schemaFolder.setTeamPrivateMember(true);
+			if (!file.exists()) {
+			    byte[] bytes = fileContent.getBytes();
+			    InputStream source = new ByteArrayInputStream(bytes);
+			    file.create(source, IResource.NONE, null);
+			} else {
+				file.delete(true, null);
+				byte[] bytes = fileContent.getBytes();
+			    InputStream source = new ByteArrayInputStream(bytes);
+			    file.create(source, IResource.NONE, null);
+			}
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void saveExternalResourcesUnderWorkspace(String fileContent, String propertyId, String version) {
+		System.out.println("Saving external resources");
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IWorkspaceRoot root = workspace.getRoot();
+		IProject project  = root.getProject(".papiCreds");
+		IFolder resourcesFolder = project.getFolder("resources");
+		IFolder externalResourcesFolder = resourcesFolder.getFolder("externalResources");
+		IFile file = externalResourcesFolder.getFile(propertyId+"_v"+version+".json");
+		try {
+			//at this point, no resources have been created
+			if (!project.exists()) project.create(null);
+			//project.setTeamPrivateMember(true);
+			if (!resourcesFolder.exists()) {
+				resourcesFolder.create(IResource.NONE, true, null);
+			    resourcesFolder.setTeamPrivateMember(true);
+			}
+				
+			if (!externalResourcesFolder.exists()) {
+				System.out.println("Creating external resources folder");
+				externalResourcesFolder.create(IResource.NONE, true, null);
+				externalResourcesFolder.setTeamPrivateMember(true);
+			}
+				
 			if (!file.exists()) {
 			    byte[] bytes = fileContent.getBytes();
 			    InputStream source = new ByteArrayInputStream(bytes);
@@ -330,7 +370,7 @@ public class FileUtils {
 		      while((str = reader.readLine())!= null){
 		         sb.append(str);
 		      }
-			System.out.println("Context File InputStream: "+sb.toString());
+			//System.out.println("Context File InputStream: "+sb.toString());
 			contextJson = sb.toString();
 			ObjectMapper mapper = new ObjectMapper();
 			context = mapper.readValue(contextJson, Context.class);
@@ -343,6 +383,52 @@ public class FileUtils {
 		}
 
 		return context;
+	}
+	
+	public String readExternalResourcesFile(String propertyId, String version) throws ConfigurationException, IOException, CredentialsMissingException {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IWorkspaceRoot root = workspace.getRoot();
+		IProject project  = root.getProject(".papiCreds");
+		IFolder resourcesFolder = project.getFolder("resources");
+		IFolder externalResourcesFolder = resourcesFolder.getFolder("externalResources");
+		String externalResourcesJson = null;
+		if (externalResourcesFolder.exists()) {
+			IFile file = externalResourcesFolder.getFile(propertyId+"_v"+version+".json");
+			if (file.exists()) {
+				System.out.println("Reading External Resources File");
+				try {
+					InputStream externalResoucesFileContent = file.getContents();
+					InputStreamReader isReader = new InputStreamReader(externalResoucesFileContent);
+				      //Creating a BufferedReader object
+				      BufferedReader reader = new BufferedReader(isReader);
+				      StringBuffer sb = new StringBuffer();
+				      String str;
+				      while((str = reader.readLine())!= null){
+				         sb.append(str);
+				      }
+					externalResourcesJson = sb.toString();
+					return externalResourcesJson;
+				} catch (CoreException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		} 
+		PapiOpenCalls papiOpenCalls = new PapiOpenCalls();
+		try {
+			papiOpenCalls.getExternalResourcesForPropertyVersion(propertyId, version);
+			externalResourcesJson = readExternalResourcesFile(propertyId, version);
+		} catch (RuleTreeDownloadError e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return externalResourcesJson;
 	}
 	
 	
@@ -427,26 +513,22 @@ public class FileUtils {
 		return text;
 	}
 	
-	public void updateContextFiles() throws CredentialsMissingException, MissingPropertyDetailsException {
+	public void updateContextFiles() throws CredentialsMissingException, MissingPropertyDetailsException, RuleTreeDownloadError {
 		RuleTreeUtils ruleTreeUtils = new RuleTreeUtils();
 		Context context = readContextFile();
 		System.out.println("Getting property version details");
 		try {
 			PropertyVersion propertyVersion = ruleTreeUtils.getPropertyVersionFromRuleTree();
 			System.out.println("Property Version details: "+propertyVersion.getId());
-			if (context.getPropertyId()== null || context.getVersion() == null || !context.getPropertyId().equalsIgnoreCase(propertyVersion.getId()) && !context.getVersion().equalsIgnoreCase(propertyVersion.getVersion().toString())) {
+			if (context.getPropertyId()== null || context.getVersion() == null || !context.getPropertyId().equalsIgnoreCase(propertyVersion.getId()) || !context.getVersion().equalsIgnoreCase(propertyVersion.getVersion().toString())) {
 	        	PapiOpenCalls papiOpenCalls = new PapiOpenCalls();
 	        	papiOpenCalls.getPropertyVersionDetails(propertyVersion.getId(),propertyVersion.getVersion().toString());
-	        	ruleTreeUtils.refreshRuleTree();
 			} else {
 				System.out.println("Context file is up to date");
 			}
         } catch (IOException e) {
         	
         } catch (NumberFormatException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RuleTreeDownloadError e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (ConfigurationException e) {

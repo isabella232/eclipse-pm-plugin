@@ -24,6 +24,7 @@ import org.eclipse.ui.handlers.HandlerUtil;
 
 import com.akamai.ruletreevalidator.exceptions.CredentialsMissingException;
 import com.akamai.ruletreevalidator.exceptions.MissingPropertyDetailsException;
+import com.akamai.ruletreevalidator.exceptions.RuleTreeDownloadError;
 import com.akamai.ruletreevalidator.utils.FileUtils;
 import com.akamai.ruletreevalidator.utils.JsonUtil;
 import com.akamai.ruletreevalidator.utils.RuleTreeUtils;
@@ -32,12 +33,17 @@ public class CreateVariableHandler extends AbstractHandler {
 
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
-		//AddVariableDialog addVariableDialog = new AddVariableDialog(window.getShell());
-		//addVariableDialog.createDialogArea();
 		JsonUtil jsonSchemaUtil = new JsonUtil();
 		FileUtils fileUtils = new FileUtils();
         try {
 			fileUtils.updateContextFiles();
+			RuleTreeUtils ruleTreeUtils = new RuleTreeUtils();
+			if (!ruleTreeUtils.createVariable(jsonSchemaUtil.getVariableSnippet())) {
+				MessageDialog.openWarning(
+						window.getShell(),
+						"Invalid location for variable",
+						"You can only insert a variable into a valid string value.");
+			}
 		} catch (CredentialsMissingException e) {
 			MessageDialog.openWarning(window.getShell(), "EdgeGrid Credentials not set",
 					"Go to 'Credential Settings' to configure your preferences.");
@@ -46,14 +52,10 @@ public class CreateVariableHandler extends AbstractHandler {
 					window.getShell(),
 					"Missing Property Details",
 					e.getMessage());
+		} catch (RuleTreeDownloadError e) {
+			
 		}
-		RuleTreeUtils ruleTreeUtils = new RuleTreeUtils();
-		if (!ruleTreeUtils.createVariable(jsonSchemaUtil.getVariableSnippet())) {
-			MessageDialog.openWarning(
-					window.getShell(),
-					"Invalid location for variable",
-					"You can only insert a variable into a valid string value.");
-		}
+		
 		return null;
 	}
 }
