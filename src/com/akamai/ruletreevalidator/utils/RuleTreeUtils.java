@@ -35,8 +35,11 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import com.akamai.ruletreevalidator.exceptions.AuthenticationMethodNotSelectedError;
 import com.akamai.ruletreevalidator.exceptions.CredentialsMissingException;
 import com.akamai.ruletreevalidator.exceptions.MissingPropertyDetailsException;
+import com.akamai.ruletreevalidator.exceptions.NoExternalResourcesAvailableException;
+import com.akamai.ruletreevalidator.models.AvailableExternalResources;
 import com.akamai.ruletreevalidator.models.Context;
 import com.akamai.ruletreevalidator.models.PropertyVersion;
 import com.akamai.ruletreevalidator.models.SnippetType;
@@ -52,34 +55,41 @@ public class RuleTreeUtils {
 		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		IEditorPart part = page.getActiveEditor();
 		if (part instanceof AbstractTextEditor) {
+
 			ITextEditor editor = (ITextEditor) part;
 			IDocumentProvider dp = editor.getDocumentProvider();
 			IDocument doc = dp.getDocument(editor.getEditorInput());
 			try {
 				ITextSelection textSelection = (ITextSelection) editor.getSite().getSelectionProvider().getSelection();
 				int offset = textSelection.getOffset();
-				String text = doc.get(0, offset).replaceAll("\\s", "");
-				System.out.println("text selection end line"+doc.get(offset, 10).contains("{"));
-				if (isValidPlaceforSnippet(text, type)) {
+				String ruleTreeTillOffset = doc.get(0, offset).replaceAll("\\s", "");
+				String ruleTreeAfterOffset = doc.get(offset, doc.getLength()).replaceAll("\\s", "");
+				System.out.println("text selection end line" + doc.get(offset, 10).contains("{"));
+				if (isValidPlaceforSnippet(ruleTreeTillOffset, type)) {
 					if (type == SnippetType.VARIABLE.type) {
-						if (doc.getChar(offset-1) == '}') {
+						if (doc.getChar(offset - 1) == '}') {
 							doc.replace(offset, 0, "," + snippet);
-						} else if (doc.getChar(offset-1) == '[' && doc.get(offset, 10).contains("{")) {
-							doc.replace(offset, 0, snippet+",");
-						} else doc.replace(offset, 0, snippet);
+						} else if (doc.getChar(offset - 1) == '[' && doc.get(offset, 10).contains("{")) {
+							doc.replace(offset, 0, snippet + ",");
+						} else
+							doc.replace(offset, 0, snippet);
 						beautifyJson();
 						return true;
 					} else {
-						System.out.println("Is Character offset }: "+doc.getChar(offset-1));
-						if (doc.getChar(offset-1) == '}') {
-							doc.replace(offset, 0, ",\n" + snippet + "\n");
-						} else if (doc.getChar(offset-1) == '[' && doc.get(offset, 10).contains("{")) {
+						System.out.println("Is Character offset }: " + doc.getChar(offset - 1));
+						if (ruleTreeTillOffset.endsWith("}") && ruleTreeAfterOffset.startsWith("{")) {
+							doc.replace(offset, 0, ",\n" + snippet + ",\n");
+						} else if ((ruleTreeTillOffset.endsWith("},") && ruleTreeAfterOffset.startsWith("{"))
+								|| (ruleTreeTillOffset.endsWith("[") && ruleTreeAfterOffset.startsWith("{"))) {
 							doc.replace(offset, 0, "\n" + snippet + ",\n");
-						} else doc.replace(offset, 0, "\n" + snippet + "\n");
+						} else if (ruleTreeTillOffset.endsWith("}") && ruleTreeAfterOffset.startsWith("]")) {
+							doc.replace(offset, 0, ",\n" + snippet + "\n");
+						} else
+							doc.replace(offset, 0, "\n" + snippet + "\n");
 						beautifyJson();
 						return true;
 					}
-					
+
 				}
 
 			} catch (BadLocationException e) {
@@ -106,7 +116,7 @@ public class RuleTreeUtils {
 				try {
 					doc.replace(varEndIndex, 0, "\n" + snippet + ",\n");
 					editor.resetHighlightRange();
-					editor.setHighlightRange(varEndIndex+22, 0, true);
+					editor.setHighlightRange(varEndIndex + 22, 0, true);
 					editor.setFocus();
 					beautifyJson();
 					return true;
@@ -123,7 +133,7 @@ public class RuleTreeUtils {
 					String rules = "\"rules\": {";
 					int rulesStartIndex = doc.get().lastIndexOf(rules);
 					int rulesEndIndex = rulesStartIndex + rules.length();
-					String variableBlock = "\"variables\": [\n"+ snippet +"\n],";
+					String variableBlock = "\"variables\": [\n" + snippet + "\n],";
 					doc.replace(rulesEndIndex, 0, "\n" + variableBlock + "\n");
 					beautifyJson();
 					return true;
@@ -137,17 +147,17 @@ public class RuleTreeUtils {
 		}
 		return true;
 	}
-	
+
 	public void beautifyJson() {
 		System.out.println("Beautifying the rule tree");
 		String commandId = "org.eclipse.wst.sse.ui.format.document";
-	    IHandlerService handlerService = (IHandlerService) PlatformUI.getWorkbench().getService(IHandlerService.class);
-	    try {
-	        System.out.println("Executing beautify");
-	    	handlerService.executeCommand(commandId, null);
-	    } catch (Exception e1) {
-	    	System.out.println("Exception while beautifying: "+e1.getMessage());
-	    }
+		IHandlerService handlerService = (IHandlerService) PlatformUI.getWorkbench().getService(IHandlerService.class);
+		try {
+			System.out.println("Executing beautify");
+			handlerService.executeCommand(commandId, null);
+		} catch (Exception e1) {
+			System.out.println("Exception while beautifying: " + e1.getMessage());
+		}
 		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		IEditorPart part = page.getActiveEditor();
 		if (part != null) {
@@ -165,13 +175,14 @@ public class RuleTreeUtils {
 		int countOpenCurlyBraces = 0;
 		int countClosedCurlyBraces = 0;
 		if (text.contains("\"" + type + "\":[")) {
-			//If blank rule template is being inserted in nesting]
+			// If blank rule template is being inserted in nesting]
 			if (type == SnippetType.CHILDREN.type && text.contains("\"" + type + "\":[{") && text.endsWith("}")) {
 				snippetOffset = text.indexOf("\"" + type + "\":[{");
-				countOpenBraces= -1;
+				countOpenBraces = -1;
 				countOpenCurlyBraces = -1;
-			} else snippetOffset = text.lastIndexOf("\"" + type + "\":[");
-			
+			} else
+				snippetOffset = text.lastIndexOf("\"" + type + "\":[");
+
 			for (int i = snippetOffset; i < text.length(); i++) {
 				if (text.charAt(i) == '[') {
 					countOpenBraces++;
@@ -187,16 +198,18 @@ public class RuleTreeUtils {
 				}
 			}
 			if (type == SnippetType.VARIABLE.type) {
-				//check whether variable is being inserted within options {} block
+				// check whether variable is being inserted within options {} block
 				if (text.lastIndexOf("\"options\":{") > -1 && text.length() > text.lastIndexOf("}")) {
 					if (countOpenBraces > countClosedBraces && countOpenCurlyBraces > countClosedCurlyBraces) {
 						String valueOfField = text.substring(text.lastIndexOf("\":"), text.length());
 						if (valueOfField.matches("\".*$")) {
-							// valid location for inserting variable e.g. "options" : { "name" : " or  "options" : { "name" : "xyz
+							// valid location for inserting variable e.g. "options" : { "name" : " or
+							// "options" : { "name" : "xyz
 							return true;
 						}
 					}
-				} else return false;
+				} else
+					return false;
 			}
 			if (countOpenBraces == countClosedBraces + 1 && countOpenCurlyBraces == countClosedCurlyBraces) {
 				if (text.endsWith("}") || text.endsWith("[") || text.endsWith(",")) {
@@ -240,7 +253,7 @@ public class RuleTreeUtils {
 				IDocumentProvider dp = editor.getDocumentProvider();
 				IDocument doc = dp.getDocument(editor.getEditorInput());
 				ruleTree = doc.get();
-				//Append productId and ruleFormat in the rule tree for validation
+				// Append productId and ruleFormat in the rule tree for validation
 				JSONParser parser = new JSONParser();
 				JSONObject ruleTreeJson = (JSONObject) parser.parse(ruleTree);
 				FileUtils fileUtils = new FileUtils();
@@ -249,14 +262,14 @@ public class RuleTreeUtils {
 				ruleTreeJson.put("ruleFormat", context.getRuleFormat());
 				ruleTree = ruleTreeJson.toString();
 			}
-		} catch(ParseException e) {
-			System.out.println("Error caused while pasing the object: "+e.getMessage());
+		} catch (ParseException e) {
+			System.out.println("Error caused while pasing the object: " + e.getMessage());
 		}
-		System.out.println("Rule tree read before validating: " +ruleTree);
-		
+		System.out.println("Rule tree read before validating: " + ruleTree);
+
 		return ruleTree;
 	}
-	
+
 	public void refreshRuleTree() throws CredentialsMissingException {
 		System.out.println("Refreshing rule tree");
 		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
@@ -291,7 +304,7 @@ public class RuleTreeUtils {
 		}
 		return ruleTree;
 	}
-	
+
 	public ValidationError getErrorStringFromRuleTree(String jsonString, String path) {
 		ValidationError validationError = new ValidationError();
 		DocumentContext docCtx = JsonPath.parse(jsonString);
@@ -299,82 +312,85 @@ public class RuleTreeUtils {
 		path = path.replaceAll("/", ".");
 		path = path.replaceAll("\"", "");
 		Pattern pattern = Pattern.compile("\\d+");
-	    Matcher matcher = pattern.matcher(path);
-	    String error = null;
-	    Object errorValue = new Object();
-	    // convert the errorpath in jsonpath format e.g: #/rules/behaviors/0 -> $.rules.behaviors[0]
-	    while (matcher.find()) {
-	    	StringBuilder string = new StringBuilder(path);
-	    	System.out.println("matcher start: "+matcher.start());
-	        string.setCharAt(matcher.start()-1, '[');
-	        System.out.println("step 1: "+string);
-	        if (string.length() <= matcher.end()) {
-	        	string.append("]");
-	        } else {
-	        	string.setCharAt(matcher.end(), ']');
-	        }
-	        System.out.println("step 2: "+string);
-	        path = string.toString();
-	    }
-	    System.out.println("Path: "+path);
-	    try {
-	    	errorValue = docCtx.read(path);
-	    	System.out.println("Path found");
-	    } catch (PathNotFoundException pe) {
-	    	System.out.println("Path not found");
-	    	path = path.substring(0,path.lastIndexOf('.'));
-	    	errorValue = docCtx.read(path);
-	    }
-	    
-	    System.out.println("Object value: "+errorValue.toString());
-	    
-	    String err = errorValue.toString();
-	    if (err.startsWith("{") && !err.startsWith("{{") ) {
-	    	validationError.setType(ValidationErrorType.BLOCK);
-	    	if (err.contains(",")) {
-	    		error = err.substring(1, err.indexOf(","));
-	    	}
-	    	else {
-	    		if (!(err.contains("{{user.")||err.contains("{{builtin."))) {
-	    			error = err.replace("{", "");
-		    		error = error.replace("}", "");
-	    		}
-	    		
-	    	}
-	    	String val = error.substring(error.lastIndexOf("=")+1, error.length());
-	    	try {
-	    		//check if the value is string or integer
-	    		if (val != null && (val.matches("\\d+(\\.\\d+)?") || val.matches("^[-+]?[0-9]*\\.[0-9]+[aE]?[0-9]+$"))) {
-	    			//if integer, the value won't be in quotes
-		    		error = error.replaceAll("=", "\": ");
-			    	error = "\""+error;
-	    		} else {
-	    			System.out.println("Value is non numeric");
-		    		//if value is boolean then skip quotes
-		    		System.out.println("Value : "+val);
-		    		if(val.equalsIgnoreCase("true") || val.equalsIgnoreCase("false") || val.equalsIgnoreCase("null")) {
-		    			error = error.replaceAll("=", "\": ");
-				    	error = "\""+error;
-		    		} else {
-		    			//if value is string then add quotes
-		    			error = error.replaceAll("=", "\": \"");
-				    	error = "\""+error+"\"";
-		    		}
-	    		}
-	    		
-	    	} catch (NumberFormatException e) {
-	    		
-	    	}
-	    	validationError.setErrorString(error);
-	    	System.out.println("Error String in Block: "+error);
-	    	
-	    } else {
-	    	validationError.setType(ValidationErrorType.VALUE);
-	    	error = "\""+path.substring(path.lastIndexOf('.')+1,path.length())+"\": "+"\""+errorValue.toString()+"\"";
-	    	validationError.setErrorString(error);
-	    	System.out.println("Error String: "+error);
-	    }
-	    return validationError;
+		Matcher matcher = pattern.matcher(path);
+		String error = null;
+		Object errorValue = new Object();
+		// convert the errorpath in jsonpath format e.g: #/rules/behaviors/0 ->
+		// $.rules.behaviors[0]
+		while (matcher.find()) {
+			StringBuilder string = new StringBuilder(path);
+			System.out.println("matcher start: " + matcher.start());
+			string.setCharAt(matcher.start() - 1, '[');
+			System.out.println("step 1: " + string);
+			if (string.length() <= matcher.end()) {
+				string.append("]");
+			} else {
+				string.setCharAt(matcher.end(), ']');
+			}
+			System.out.println("step 2: " + string);
+			path = string.toString();
+		}
+		System.out.println("Path: " + path);
+		try {
+			errorValue = docCtx.read(path);
+			System.out.println("Path found");
+		} catch (PathNotFoundException pe) {
+			System.out.println("Path not found");
+			path = path.substring(0, path.lastIndexOf('.'));
+			errorValue = docCtx.read(path);
+		}
+
+		System.out.println("Object value: " + errorValue.toString());
+
+		String err = errorValue.toString();
+		if (err.startsWith("{") && !err.startsWith("{{")) {
+			validationError.setType(ValidationErrorType.BLOCK);
+			if (err.contains(",")) {
+				error = err.substring(1, err.indexOf(","));
+			} else {
+				if (!(err.contains("{{user.") || err.contains("{{builtin."))) {
+					error = err.replace("{", "");
+					error = error.replace("}", "");
+				}
+
+			}
+			String val = error.substring(error.lastIndexOf("=") + 1, error.length());
+			try {
+				// check if the value is string or integer
+				if (val != null
+						&& (val.matches("\\d+(\\.\\d+)?") || val.matches("^[-+]?[0-9]*\\.[0-9]+[aE]?[0-9]+$"))) {
+					// if integer, the value won't be in quotes
+					error = error.replaceAll("=", "\": ");
+					error = "\"" + error;
+				} else {
+					System.out.println("Value is non numeric");
+					// if value is boolean then skip quotes
+					System.out.println("Value : " + val);
+					if (val.equalsIgnoreCase("true") || val.equalsIgnoreCase("false") || val.equalsIgnoreCase("null")) {
+						error = error.replaceAll("=", "\": ");
+						error = "\"" + error;
+					} else {
+						// if value is string then add quotes
+						error = error.replaceAll("=", "\": \"");
+						error = "\"" + error + "\"";
+					}
+				}
+
+			} catch (NumberFormatException e) {
+
+			}
+			validationError.setErrorString(error);
+			System.out.println("Error String in Block: " + error);
+
+		} else {
+			validationError.setType(ValidationErrorType.VALUE);
+			error = "\"" + path.substring(path.lastIndexOf('.') + 1, path.length()) + "\": " + "\""
+					+ errorValue.toString() + "\"";
+			validationError.setErrorString(error);
+			System.out.println("Error String: " + error);
+			System.out.println("Error Type: " + validationError.getType());
+		}
+		return validationError;
 	}
 
 	public void addListner() {
@@ -409,7 +425,7 @@ public class RuleTreeUtils {
 			});
 		}
 	}
-	
+
 	public JSONObject readRuleTreeOpenInEditor() {
 		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		IEditorPart part = page.getActiveEditor();
@@ -420,6 +436,8 @@ public class RuleTreeUtils {
 			IDocument doc = dp.getDocument(editor.getEditorInput());
 			JSONParser parser = new JSONParser();
 			try {
+				Object object = parser.parse(doc.get());
+				System.out.println("Object Parsed: " + object);
 				json = (JSONObject) parser.parse(doc.get());
 			} catch (ParseException e) {
 				// TODO Auto-generated catch block
@@ -434,23 +452,39 @@ public class RuleTreeUtils {
 		JSONObject ruleTreeInEditor = ruleTreeUtils.readRuleTreeOpenInEditor();
 		if (!ruleTreeInEditor.containsKey("productId")) {
 			return false;
-		} return true;
-	}
-	
-	public PropertyVersion getPropertyVersionFromRuleTree() throws MissingPropertyDetailsException {
-		RuleTreeUtils ruleTreeUtils = new RuleTreeUtils();
-		JSONObject ruleTreeInEditor = ruleTreeUtils.readRuleTreeOpenInEditor();
-		PropertyVersion propertyVersion = new PropertyVersion();
-		try {
-
-			propertyVersion.setId(ruleTreeInEditor.get("propertyId").toString());
-			propertyVersion.setVersion(Integer.parseInt(ruleTreeInEditor.get("propertyVersion").toString()));
-		} catch (NullPointerException ne) {
-			throw new MissingPropertyDetailsException("Missing Property Details in the Rule Tree - propertyId, propertyVersion");
 		}
+		return true;
+	}
+
+	public PropertyVersion getPropertyVersionFromRuleTree() throws MissingPropertyDetailsException {
+		PropertyVersion propertyVersion = new PropertyVersion();
+		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+		IEditorPart part = page.getActiveEditor();
+		if (part instanceof AbstractTextEditor) {
+			ITextEditor editor = (ITextEditor) part;
+			IDocumentProvider dp = editor.getDocumentProvider();
+			IDocument doc = dp.getDocument(editor.getEditorInput());
+			String ruleTree = doc.get();
+			ruleTree.replaceAll("\\s", "");
+			ruleTree = ruleTree.substring(1, ruleTree.length() - 1); // remove curly brackets
+			String[] keyValuePairs = ruleTree.replaceAll("\\s", "").split(",\""); // split the string to creat key-value
+																					// pairs
+
+			for (String pair : keyValuePairs) // iterate over the pairs
+			{
+				String[] entry = pair.split(":");
+				if (entry[0].contains("propertyId")) {
+					propertyVersion.setId(entry[1].replaceAll("\"", ""));
+				}
+				if (entry[0].contains("propertyVersion")) {
+					propertyVersion.setVersion(Integer.valueOf(entry[1]));
+				}
+			}
+		}
+
 		return propertyVersion;
 	}
-	
+
 	public void updateRuleTree() throws CredentialsMissingException {
 		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		String ruleTree = readRuleTreeFromEditor();
@@ -467,5 +501,121 @@ public class RuleTreeUtils {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public AvailableExternalResources checkLocationForExternalResources()
+			throws NoExternalResourcesAvailableException, AuthenticationMethodNotSelectedError {
+		String selectedBlockFromRuleTree = getSelectedBlockFromRuleTree();
+		selectedBlockFromRuleTree = selectedBlockFromRuleTree.replaceAll("\\s", "");
+		System.out.println("Selected Block: " + selectedBlockFromRuleTree);
+		for (AvailableExternalResources resource : AvailableExternalResources.values()) {
+			if (resource.getBehaviorName().equals("originCharacteristics")
+					&& selectedBlockFromRuleTree.startsWith(resource.getSnippetInRuleTree())) {
+				if (selectedBlockFromRuleTree.contains("\"authenticationMethod\":\"AWS\"")) {
+					return AvailableExternalResources.AWS_ACCESS_KEYS;
+				} else if (selectedBlockFromRuleTree.contains("\"authenticationMethod\":\"GCS_HMAC_AUTHENTICATION\"")) {
+					return AvailableExternalResources.GCS_ACCESS_KEYS;
+				} else {
+					throw new AuthenticationMethodNotSelectedError(
+							"To use external resources with the `originCharacteristics` behavior, set the `authenticationMethod` to either: \n\u2023Amazon Web Services (AWS)\n\u2023Interoperability Google Cloud Storage (GCS_HMAC_AUTHENTICATION)",
+							PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell());
+				}
+			}
+			if (selectedBlockFromRuleTree.startsWith(resource.getSnippetInRuleTree())) {
+				return resource;
+			}
+		}
+		throw new NoExternalResourcesAvailableException("No External Resources available for this part of config",
+				PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell());
+	}
+
+	public void insertSelectedExternalResourceInRuleTree(String externalResourcesValueToBeInserted,
+			AvailableExternalResources availableExternalResources) {
+		try {
+			String selectedBehaviorBlockString = getSelectedBlockFromRuleTree();
+			IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+			IEditorPart part = page.getActiveEditor();
+			if (part instanceof AbstractTextEditor) {
+				ITextEditor editor = (ITextEditor) part;
+				IDocumentProvider dp = editor.getDocumentProvider();
+				IDocument doc = dp.getDocument(editor.getEditorInput());
+				String ruleTreeOpenInEditor = doc.get();
+				String newRuleTree = ruleTreeOpenInEditor.replace(selectedBehaviorBlockString,
+						externalResourcesValueToBeInserted + ",");
+				doc.set(newRuleTree);
+				// reformat the code in JSON format and highlight the newly inserted block
+				beautifyJson();
+				newRuleTree = doc.get();
+				int behaviorStartIndex = newRuleTree
+						.indexOf("\"name\": \"" + availableExternalResources.getBehaviorName() + "\"");
+				int behaviorEndIndex;
+				Pattern pattern = Pattern.compile("(.*\\})(\\n.*\\])");
+				Matcher matcher = pattern.matcher(newRuleTree.substring(behaviorStartIndex));
+				matcher.find();
+				if (newRuleTree.substring(behaviorStartIndex).indexOf("},") > matcher.start()) {
+					System.out.println("In here.....");
+					behaviorEndIndex = matcher.start();
+				} else
+					behaviorEndIndex = newRuleTree.substring(behaviorStartIndex).indexOf("},");
+				int index = behaviorStartIndex + behaviorEndIndex;
+				System.out.println("Behavior Start: " + behaviorStartIndex + " Behavior end index: " + index);
+				editor.resetHighlightRange();
+				editor.setHighlightRange(behaviorStartIndex, behaviorEndIndex, true);
+				editor.selectAndReveal(behaviorStartIndex, behaviorEndIndex);
+			}
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public String getSelectedBlockFromRuleTree() {
+		System.out.println("Checking the location");
+		String behaviorSelected = null;
+		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+		IEditorPart part = page.getActiveEditor();
+		if (part instanceof AbstractTextEditor) {
+			ITextEditor editor = (ITextEditor) part;
+			IDocumentProvider dp = editor.getDocumentProvider();
+			IDocument doc = dp.getDocument(editor.getEditorInput());
+			try {
+				ITextSelection textSelection = (ITextSelection) editor.getSite().getSelectionProvider().getSelection();
+				int offset = textSelection.getOffset();
+				String ruleTreeTillOffset = doc.get(0, offset);
+				String ruleTreeAfterOffset = doc.get(offset, doc.getLength());
+				String behaviorSelectedTillOffset;
+				if (ruleTreeTillOffset.lastIndexOf("\"behaviors\":") > ruleTreeTillOffset.lastIndexOf("},")) {
+					behaviorSelectedTillOffset = ruleTreeTillOffset
+							.substring(ruleTreeTillOffset.lastIndexOf("\"behaviors\":"), ruleTreeTillOffset.length());
+					behaviorSelectedTillOffset = behaviorSelectedTillOffset.replace("\"behaviors\":\\s[", "");
+
+				} else
+					behaviorSelectedTillOffset = ruleTreeTillOffset.substring(ruleTreeTillOffset.lastIndexOf("},") + 2,
+							ruleTreeTillOffset.length());
+				String behaviorSelectedAfterOffset;
+				System.out.println("Rule tree after offset: "+ruleTreeAfterOffset);
+				System.out.println("Index of }]:"+ruleTreeAfterOffset.indexOf("}\\s+]"));
+				Pattern pattern = Pattern.compile("}\\s+]");
+			    Matcher matcher = pattern.matcher(ruleTreeAfterOffset);
+			    int indexOfEndofArray = 0;
+			    while (matcher.find()) {
+			        indexOfEndofArray = matcher.start()+1;
+			    }
+				if (ruleTreeAfterOffset.indexOf("},") + 2 > indexOfEndofArray) {
+					behaviorSelectedAfterOffset = ruleTreeAfterOffset.substring(0,
+							indexOfEndofArray);
+				} else {
+					behaviorSelectedAfterOffset = ruleTreeAfterOffset.substring(0,
+							ruleTreeAfterOffset.indexOf("},") + 2);
+				}
+				behaviorSelected = (behaviorSelectedTillOffset + behaviorSelectedAfterOffset);
+				System.out.println("Selected Behavior Block: " + behaviorSelected);
+			} catch (BadLocationException e) {
+
+			}
+		}
+		return behaviorSelected;
+
 	}
 }

@@ -225,7 +225,7 @@ public class CredentialSettingsDialog extends TitleAreaDialog {
 					"Verify the EdgeGrid credentials are correct.");
         }
         sectionName = sectionNameCombo.getText();
-        accountSwitchKey = txtAccountSwitchKey.getText();
+        accountSwitchKey = txtAccountSwitchKey.getText().strip();
     }
 
 

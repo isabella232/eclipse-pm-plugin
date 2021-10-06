@@ -26,7 +26,7 @@ public class RuleTreeDownloadError extends Exception{
     {
 		MessageDialog.openWarning(
 				shell,
-				"Error occurred while trying to download property",
-				message);
+				"Error occurred while trying to download property details.",
+				message+" Note: Please check if credential settings are correct");
     }
 }

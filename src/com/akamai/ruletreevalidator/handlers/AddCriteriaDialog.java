@@ -26,6 +26,7 @@ import org.eclipse.ui.dialogs.ListSelectionDialog;
 
 import com.akamai.ruletreevalidator.exceptions.CredentialsMissingException;
 import com.akamai.ruletreevalidator.exceptions.MissingPropertyDetailsException;
+import com.akamai.ruletreevalidator.exceptions.RuleTreeDownloadError;
 import com.akamai.ruletreevalidator.models.SnippetType;
 import com.akamai.ruletreevalidator.utils.FileUtils;
 import com.akamai.ruletreevalidator.utils.JsonUtil;
@@ -46,17 +47,6 @@ public class AddCriteriaDialog {
         FileUtils fileUtils = new FileUtils();
         try {
 			fileUtils.updateContextFiles();
-		} catch (CredentialsMissingException e) {
-			MessageDialog.openWarning(parentShell, "EdgeGrid credentials not set",
-					"Go to 'Credential Settings' to configure your preferences.");
-		} catch (MissingPropertyDetailsException e) {
-			MessageDialog.openWarning(
-					parentShell,
-					"Missing Property Details",
-					e.getMessage());
-		}
-
-		try {
 			ArrayList<String> criteriaProposals = jsonSchemaUtil.getAllowedCriterias();
 			String[] behaviors = criteriaProposals.toArray(new String[criteriaProposals.size()]);
 			ListSelectionDialog dialog =
@@ -74,7 +64,16 @@ public class AddCriteriaDialog {
 									"You can only add criteria to the 'criteria' array.");
 						}
 					}
-		} catch (IOException | CredentialsMissingException e) {
+		} catch (CredentialsMissingException e) {
+			MessageDialog.openWarning(parentShell, "EdgeGrid credentials not set",
+					"Go to 'Credential Settings' to configure your preferences.");
+		} catch (MissingPropertyDetailsException e) {
+			MessageDialog.openWarning(
+					parentShell,
+					"Missing Property Details",
+					e.getMessage());
+		} catch (RuleTreeDownloadError e) {
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

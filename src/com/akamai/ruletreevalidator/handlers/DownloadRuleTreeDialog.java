@@ -194,6 +194,7 @@ public class DownloadRuleTreeDialog extends TitleAreaDialog {
 			} else {
 				PapiOpenCalls papiOpenCalls = new PapiOpenCalls();
 				papiOpenCalls.getRuleTreeForPropertyIdAndVersion(propertyId, propertyVersion);
+				papiOpenCalls.getExternalResourcesForPropertyVersion(propertyId, propertyVersion.toString());
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

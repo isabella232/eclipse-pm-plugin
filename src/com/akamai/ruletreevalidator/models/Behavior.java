@@ -20,6 +20,7 @@ import java.util.List;
 public class Behavior {
 	String name;
 	List<Properties> options;
+	
 	public String getName() {
 		return name;
 	}
@@ -32,5 +33,5 @@ public class Behavior {
 	public void setOptions(List<Properties> options) {
 		this.options = options;
 	}
-
+	
 }

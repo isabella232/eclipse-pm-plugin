@@ -5,6 +5,7 @@ When you deploy web assets to the Akamai network, you create rules that tell Aka
 ## Features
 
 - Editing rules, adding behaviors and criteria
+- Integration with external, non-Property Manager resources such as CP codes or NetStorage groups
 - Syntax suggestions based on your Akamai product
 - Inline JSON syntax checker
 - Property Manager variables support
@@ -105,7 +106,6 @@ With the Property Manager plugin, you can manage rules, behaviors, criteria, and
 
 You can further extend your configuration by selecting **Add Blank Rule** from the **Property Manager** menu. This option inserts an object template to the children array. Customize it by adding criteria to filter requests to your property and trigger selected behaviors. You can also nest rules in each other.
 
-
 ### Variables
 
 The plugin supports both built-in and user-defined variables in your configuration. You can use them in the string values within `options` objects.
@@ -114,6 +114,24 @@ Insert an already defined variable to your rule tree by selecting **Use Variable
 
 To create a custom variable, select **Create Variable** from the **Property Manager** menu. A variable template appears in the variables section.
 
+### External resources
+
+In some behaviors, you need to specify information that comes from the Akamai applications other than Property Manager. Instead of running separate API or CLI calls to get that data, the plugin provides a list of external resources available for the property ID and version associated with your rule tree.
+
+To insert an external resource, go to the option value that requires such information and select **Add External Resources** from the **Property Manager** menu.
+
+Supported external resources:
+
+- Content Provider (CP) codes
+- NetStorage groups for the `originServer` behavior
+- AWS and GCS access keys for the `originCharacteristics` behavior
+- Beacon data sources for the `adaptiveAcceleration` behavior
+- Revocation lists for the `segmentedContentProtection` behavior
+- EdgeWorker IDs
+- Stream names for the `datastream` behavior
+- JWT key locations for the `verifyJsonWebToken` behavior
+- Locations for the `cloudWrapper` behavior
+- Custom behavior IDs
 
 ## Validation
 
